@@ -1,21 +1,34 @@
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import csv
 
 
 def create_gantt_chart(jobs, time_intervals):
     fig, ax = plt.subplots()
 
     # Set the format for the date axis
-    date_format = mdates.DateFormatter("%Y-%m-%d %H:%M")
+    date_format = mdates.DateFormatter("%Y-%m-%d %H:%M:%S")
     ax.xaxis.set_major_formatter(date_format)
 
     # Set the axis labels
     ax.set_xlabel("Date & Time")
     ax.set_ylabel("Jobs")
 
+    unique_jobs = sorted(list(set(jobs)))
+    y_pos_mapping = {job: idx for idx, job in enumerate(unique_jobs)}
+
     for idx, job in enumerate(jobs):
         start_date, end_date = time_intervals[idx]
-        ax.barh(job, end_date - start_date, left=start_date, height=0.3, align="center")
+        ax.barh(
+            y_pos_mapping[job] + idx * 0.1,
+            end_date - start_date,
+            left=start_date,
+            height=0.1,
+            align="center",
+        )
+
+    ax.set_yticks(range(len(unique_jobs)))
+    ax.set_yticklabels(unique_jobs)
 
     # Set the layout and show the chart
     plt.tight_layout()
@@ -24,18 +37,14 @@ def create_gantt_chart(jobs, time_intervals):
     plt.show()
 
 
-# Example usage:
-jobs = ["Job 1", "Job 2", "Job 3"]
-time_intervals = [
-    ("2023-04-10 08:00", "2023-04-15 17:00"),
-    ("2023-04-12 10:30", "2023-04-18 15:00"),
-    ("2023-04-16 09:00", "2023-04-22 18:00"),
-]
+# Read jobs and time intervals from the CSV file
+jobs = []
+time_intervals = []
 
-# Convert date strings to datetime objects
-time_intervals = [
-    (mdates.datestr2num(start), mdates.datestr2num(end))
-    for start, end in time_intervals
-]
+with open("jobs.csv", "r") as csvfile:
+    reader = csv.reader(csvfile)
+    for row in reader:
+        jobs.append(row[0])
+        time_intervals.append((mdates.datestr2num(row[1]), mdates.datestr2num(row[2])))
 
 create_gantt_chart(jobs, time_intervals)
