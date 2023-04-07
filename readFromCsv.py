@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import csv
 from collections import defaultdict
+import mplcursors
 
 
 def create_gantt_chart(file_path):
@@ -18,7 +19,9 @@ def create_gantt_chart(file_path):
             jobs[machine].append(job)
             time_intervals[machine].append((start_time, end_time))
 
-    fig, ax = plt.subplots()
+    # Create a larger figure and adjust the size of the chart area
+    fig, ax = plt.subplots(figsize=(13, 8))
+    plt.subplots_adjust(left=0.25, right=0.95, top=0.95, bottom=0.2)
 
     # Set the format for the date axis
     date_format = mdates.DateFormatter("%Y-%m-%d %H:%M:%S")
@@ -47,7 +50,6 @@ def create_gantt_chart(file_path):
     colors = plt.cm.get_cmap("tab20", len(all_jobs))
     job_colors = {job: colors(i) for i, job in enumerate(all_jobs)}
 
-    # Plot the bars for each machine and job
     for idx, machine in enumerate(machines):
         for job, (start_time, end_time) in zip(jobs[machine], time_intervals[machine]):
             start_num = mdates.datestr2num(start_time)
@@ -60,27 +62,35 @@ def create_gantt_chart(file_path):
                 align="center",
                 color=job_colors[job],
                 label=job,
+                alpha=0.81,  # Set the transparency of the bars
             )
 
     # Set the x-axis limits to the minimum and maximum time values, with a buffer of 5% on either side
     time_range = mdates.datestr2num(max_time) - mdates.datestr2num(min_time)
     buffer = 0.05 * time_range
-    ax.set_xlim(
-        mdates.datestr2num(min_time) - buffer, mdates.datestr2num(max_time) + buffer
-    )
+    ax.set_xlim(mdates.datestr2num(min_time), mdates.datestr2num(max_time) + buffer)
 
     # Set the x-axis label to include the minimum time value
     ax.set_xlabel(f"Start Time: {min_time}   Date & Time")
 
-    # Create a legend for the job colors
+    # Create a legend for the job colors outside the chart area
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys())
+    legend = ax.legend(by_label.values(), by_label.keys(), draggable=True)
 
     # Set the layout and show the chart
-    plt.tight_layout()
     plt.grid(axis="x")
     plt.xticks(rotation=45)
+
+    # Add interactivity with mplcursors
+    cursor = mplcursors.cursor(ax, hover=False)
+    cursor.connect(
+        "add",
+        lambda sel: sel.annotation.set_text(
+            f"{jobs[sel.target.get_y()][0]}: {mdates.num2date(sel.target.get_x()):%Y-%m-%d %H:%M:%S}"
+        ),
+    )
+
     plt.show()
 
 
